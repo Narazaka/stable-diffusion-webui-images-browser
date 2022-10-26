@@ -35,15 +35,17 @@ def reduplicative_file_move(src, dst):
     name = os.path.basename(src)
     save_name = os.path.join(dst, name)
     if not os.path.exists(save_name):
-        shutil.move(src, dst)
+        shutil.copy2(src, dst)
+        return True
     else:
-        name = same_name_file(name, dst)
-        shutil.move(src, os.path.join(dst, name))
+        return False
 
 def save_image(file_name):
     if file_name is not None and os.path.exists(file_name):
-        reduplicative_file_move(file_name, opts.outdir_save)
-        return "<div style='color:#999'>Added to faverites</div>"
+        if reduplicative_file_move(file_name, opts.outdir_save):
+            return "<div style='color:#999'>Added to faverites</div>"
+        else:
+            return "<div style='color:#f90'>Already faverite</div>"
 
 def delete_image(delete_num, name, filenames, image_index, visible_num):
     if name == "":
