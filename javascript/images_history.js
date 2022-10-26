@@ -156,16 +156,32 @@ function images_history_init(){
     } 
 }
 
+function favorite_images(){
+    /** @type {HTMLTextAreaElement} */
+    var filenamesTextArea = gradioApp().getElementById("images_history_favorite_filenames").querySelector("textarea");
+    return filenamesTextArea.value.split("\n").map(n => n.replace(/^(\d+).*/, "$1"));
+}
+
 var images_history_tab_list = "";
 setTimeout(images_history_init, 500);
 document.addEventListener("DOMContentLoaded", function() {
     var mutationObserver = new MutationObserver(function(m){
+        var favorites = new Set(favorite_images());
         if (images_history_tab_list != ""){
             for (var i in images_history_tab_list ){
                 let tabname = images_history_tab_list[i]
                 var buttons = gradioApp().querySelectorAll('#' + tabname + '_images_history .gallery-item');
-                buttons.forEach(function(bnt){    
+                buttons.forEach(/** @param {HTMLButtonElement} bnt */function(bnt){    
                     bnt.addEventListener('click', images_history_click_image, true);
+                    var image = (/** @type {HTMLImageElement} */(bnt.children.item(0)));
+                    if (image && image.src) {
+                        var filename = decodeURI(image.src).slice(image.src.lastIndexOf("/") + 1).replace(/^(\d+).*/, "$1");
+                        if (favorites.has(filename)) {
+                            bnt.style.boxShadow = "0 0 2px 2px #ff0";
+                        } else {
+                            bnt.style.boxShadow = "";
+                        }
+                    }
                 });
 
                 var cls_btn = gradioApp().getElementById(tabname + '_images_history_gallery').querySelector("svg");

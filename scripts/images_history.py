@@ -47,6 +47,22 @@ def save_image(file_name):
         else:
             return "<div style='color:#f90'>Already faverite</div>"
 
+def reduplicative_file_delete(src, dst):
+    name = os.path.basename(src)
+    save_name = os.path.join(dst, name)
+    if os.path.exists(save_name):
+        os.unlink(save_name)
+        return True
+    else:
+        return False
+
+def save_delete_image(file_name):
+    if file_name is not None and os.path.exists(file_name):
+        if reduplicative_file_delete(file_name, opts.outdir_save):
+            return "<div style='color:#f00'>Deleted from faverites</div>"
+        else:
+            return "<div style='color:#f90'>Not faverite</div>"
+
 def delete_image(delete_num, name, filenames, image_index, visible_num):
     if name == "":
         return filenames, delete_num
@@ -126,6 +142,11 @@ def get_image_page(img_path, page_index, filenames, keyword, sort_by):
     load_info += f"{length} images in this directory, divided into {int((length + 1) // num_of_imgs_per_page  + 1)} pages"
     load_info += "</div>"
     return filenames, page_index, image_list,  "", "",  "", visible_num, load_info
+
+def get_favorite_images(filenames, page_index):
+    if page_index == 1 or page_index == 0 or len(filenames) == 0:
+        filenames = [os.path.basename(filename) for filename in get_all_images(opts.outdir_save, "path name", "")]
+    return "\n".join(filenames)
 
 def show_image_info(tabname_box, num, page_index, filenames):
     file = filenames[int(num) + int((page_index - 1) * num_of_imgs_per_page)]   
@@ -227,6 +248,7 @@ def create_tab(tabname):
                     with gr.Row(elem_id=tabname + "_images_history_button_panel") as button_panel:
                         if tabname != faverate_tab_name:
                             save_btn = gr.Button('Collect')
+                        save_delete_btn = gr.Button('お気に入り解除')
                         send_to_txt2img = gr.Button('To txt2img')
                         send_to_img2img = gr.Button('To img2img')
                         send_to_inpaint = gr.Button('To inpaint')
@@ -242,6 +264,7 @@ def create_tab(tabname):
                         image_index = gr.Textbox(value=-1)
                         set_index = gr.Button('set_index', elem_id=tabname + "_images_history_set_index")
                         filenames = gr.State([])
+                        favorite_filenames = gr.Textbox(lines=2, elem_id="images_history_favorite_filenames")
                         all_images_list = gr.State()
                         hidden = gr.Image(type="pil")
                         info1 = gr.Textbox()
@@ -261,6 +284,7 @@ def create_tab(tabname):
     delete.click(fn=None, _js="images_history_delete", inputs=[delete_num, tabname_box, image_index], outputs=None) 
     if tabname != faverate_tab_name: 
         save_btn.click(save_image, inputs=[img_file_name], outputs=[collected_warning])     
+    save_delete_btn.click(save_delete_image, inputs=[img_file_name], outputs=[collected_warning])
 
     #turn page
     first_page.click(lambda s:(1, -s) , inputs=[turn_page_switch], outputs=[page_index, turn_page_switch])
@@ -277,6 +301,11 @@ def create_tab(tabname):
         fn=get_image_page, 
         inputs=[img_path, page_index, filenames, keyword, sort_by], 
         outputs=[filenames, page_index, history_gallery, img_file_name, img_file_time, img_file_info, visible_img_num, warning_box]
+    )
+    turn_page_switch.change(
+        fn=get_favorite_images,
+        inputs=[favorite_filenames, page_index],
+        outputs=[favorite_filenames]
     )
     turn_page_switch.change(fn=None, inputs=[tabname_box], outputs=None, _js="images_history_turnpage")
     turn_page_switch.change(fn=lambda:(gr.update(visible=False), gr.update(visible=False)), inputs=None, outputs=[delete_panel, button_panel])
